@@ -1,0 +1,61 @@
+.whiteboard-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.toolbar button {
+  padding: 6px 12px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.toolbar button:hover {
+  background: #e5e7eb;
+}
+
+.toolbar button.active {
+  background: #4f46e5;
+  color: white;
+}
+
+.canvas {
+  display: block;
+  border: 1px solid #e5e7eb;
+  cursor: crosshair;
+}
+
+.live-cursor {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 999;
+}
+
+.cursor-dot {
+  width: 10px;
+  height: 10px;
+  background: #4f46e5;
+  border-radius: 50%;
+}
+
+.cursor-name {
+  font-size: 12px;
+  background: #4f46e5;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-top: 4px;
+  display: inline-block;
+}
