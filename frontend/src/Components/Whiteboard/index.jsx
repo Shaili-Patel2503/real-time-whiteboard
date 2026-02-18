@@ -1,56 +1,38 @@
 import { useRef, useEffect, useState } from "react";
 import "./index.css";
 
-const Whiteboard = ({ socket, roomId }) => {
+const Whiteboard = ({ socket, roomId, name, color }) => {
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
   const currentElement = useRef(null);
 
   const [tool, setTool] = useState("pencil");
-  const [color, setColor] = useState("#000000");
+  const [drawColor, setDrawColor] = useState("#000000");
   const [elements, setElements] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [drawing, setDrawing] = useState(false);
+  const [users, setUsers] = useState([]);
   const [cursors, setCursors] = useState({});
+  const [messages, setMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
 
-  // =============================
-  // Setup Canvas
-  // =============================
+  // Canvas setup
   useEffect(() => {
     const canvas = canvasRef.current;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight - 80;
+    canvas.width = window.innerWidth - 500;
+    canvas.height = window.innerHeight - 140;
 
     const context = canvas.getContext("2d");
     context.lineCap = "round";
     context.lineJoin = "round";
     context.lineWidth = 3;
-
     contextRef.current = context;
   }, []);
 
-  // =============================
-  // Redraw Canvas
-  // =============================
+  // Socket listeners
   useEffect(() => {
-    const ctx = contextRef.current;
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-
-    elements.forEach((element) => drawElement(ctx, element));
-  }, [elements]);
-
-  // =============================
-  // Socket Listeners
-  // =============================
-  useEffect(() => {
-    socket.on("receive-elements", (newElements) => {
-      setElements(newElements);
-    });
-
-    socket.on("clear-canvas", () => {
-      setElements([]);
-      setRedoStack([]);
-    });
+    socket.on("receive-elements", (data) => setElements(data));
+    socket.on("users-update", (data) => setUsers(data));
 
     socket.on("cursor-move", (data) => {
       setCursors((prev) => ({
@@ -59,36 +41,41 @@ const Whiteboard = ({ socket, roomId }) => {
       }));
     });
 
-    socket.on("user-disconnected", (socketId) => {
-      setCursors((prev) => {
-        const updated = { ...prev };
-        delete updated[socketId];
-        return updated;
-      });
+    socket.on("receive-message", (data) => {
+      setMessages((prev) => [...prev, data]);
+    });
+
+    socket.on("clear-canvas", () => {
+      setElements([]);
+      setRedoStack([]);
     });
 
     return () => {
       socket.off("receive-elements");
-      socket.off("clear-canvas");
+      socket.off("users-update");
       socket.off("cursor-move");
-      socket.off("user-disconnected");
+      socket.off("receive-message");
+      socket.off("clear-canvas");
     };
   }, [socket]);
 
-  // =============================
-  // Drawing Logic
-  // =============================
+  // Redraw canvas
+  useEffect(() => {
+    const ctx = contextRef.current;
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    elements.forEach((el) => drawElement(ctx, el));
+  }, [elements]);
+
   const drawElement = (ctx, element) => {
     ctx.strokeStyle = element.color;
 
     if (element.type === "pencil") {
       ctx.beginPath();
-      element.points.forEach((point, index) => {
-        if (index === 0) ctx.moveTo(point.x, point.y);
-        else ctx.lineTo(point.x, point.y);
+      element.points.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
       });
       ctx.stroke();
-      ctx.closePath();
     }
 
     if (element.type === "line") {
@@ -96,7 +83,6 @@ const Whiteboard = ({ socket, roomId }) => {
       ctx.moveTo(element.startX, element.startY);
       ctx.lineTo(element.endX, element.endY);
       ctx.stroke();
-      ctx.closePath();
     }
 
     if (element.type === "rectangle") {
@@ -117,14 +103,14 @@ const Whiteboard = ({ socket, roomId }) => {
       currentElement.current = {
         id: Date.now(),
         type: "pencil",
-        color,
+        color: drawColor,
         points: [{ x: offsetX, y: offsetY }],
       };
     } else {
       currentElement.current = {
         id: Date.now(),
         type: tool,
-        color,
+        color: drawColor,
         startX: offsetX,
         startY: offsetY,
         endX: offsetX,
@@ -135,7 +121,6 @@ const Whiteboard = ({ socket, roomId }) => {
 
   const draw = (e) => {
     if (!drawing) return;
-
     const { offsetX, offsetY } = e.nativeEvent;
 
     if (tool === "pencil") {
@@ -145,13 +130,13 @@ const Whiteboard = ({ socket, roomId }) => {
       currentElement.current.endY = offsetY;
     }
 
-    const updatedElements = [
+    const updated = [
       ...elements.filter((el) => el.id !== currentElement.current.id),
       currentElement.current,
     ];
 
-    setElements(updatedElements);
-    socket.emit("send-elements", { roomId, elements: updatedElements });
+    setElements(updated);
+    socket.emit("send-elements", { roomId, elements: updated });
   };
 
   const stopDrawing = () => {
@@ -159,30 +144,22 @@ const Whiteboard = ({ socket, roomId }) => {
     setRedoStack([]);
   };
 
-  // =============================
-  // Undo / Redo / Clear
-  // =============================
   const undo = () => {
     if (!elements.length) return;
-
     const last = elements[elements.length - 1];
-    const newElements = elements.slice(0, -1);
-
-    setElements(newElements);
+    const updated = elements.slice(0, -1);
+    setElements(updated);
     setRedoStack([...redoStack, last]);
-    socket.emit("send-elements", { roomId, elements: newElements });
+    socket.emit("send-elements", { roomId, elements: updated });
   };
 
   const redo = () => {
     if (!redoStack.length) return;
-
     const element = redoStack[redoStack.length - 1];
-    const newRedo = redoStack.slice(0, -1);
-    const newElements = [...elements, element];
-
-    setElements(newElements);
-    setRedoStack(newRedo);
-    socket.emit("send-elements", { roomId, elements: newElements });
+    const updated = [...elements, element];
+    setElements(updated);
+    setRedoStack(redoStack.slice(0, -1));
+    socket.emit("send-elements", { roomId, elements: updated });
   };
 
   const clearCanvas = () => {
@@ -191,79 +168,124 @@ const Whiteboard = ({ socket, roomId }) => {
     socket.emit("clear-canvas", roomId);
   };
 
-  // =============================
-  // Cursor Move
-  // =============================
-  const handleCursorMove = (e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  const sendMessage = () => {
+    if (!chatInput.trim()) return;
 
-    socket.emit("cursor-move", {
+    const msgData = {
       roomId,
-      x,
-      y,
-      name: "User",
-    });
+      message: chatInput,
+      name,
+      color,
+    };
+
+    socket.emit("send-message", msgData);
+    setChatInput("");
   };
 
   return (
-    <div className="whiteboard-container">
-      <div className="toolbar">
-        <button
-          className={tool === "pencil" ? "active" : ""}
-          onClick={() => setTool("pencil")}
-        >
-          ✏ Pencil
-        </button>
-
-        <button
-          className={tool === "line" ? "active" : ""}
-          onClick={() => setTool("line")}
-        >
-          📏 Line
-        </button>
-
-        <button
-          className={tool === "rectangle" ? "active" : ""}
-          onClick={() => setTool("rectangle")}
-        >
-          ⬛ Rectangle
-        </button>
-
-        <input
-          type="color"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-        />
-
-        <button onClick={undo}>↩ Undo</button>
-        <button onClick={redo}>↪ Redo</button>
-        <button onClick={clearCanvas}>🗑 Clear</button>
+    <div className="app">
+      <div className="topbar">
+        <h3>Room: {roomId}</h3>
       </div>
 
-      <canvas
-        ref={canvasRef}
-        className="canvas"
-        onMouseDown={startDrawing}
-        onMouseMove={(e) => {
-          draw(e);
-          handleCursorMove(e);
-        }}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
-      />
+      <div className="layout">
+        {/* Canvas + Toolbar */}
+        <div className="canvas-area">
+          <div className="toolbar">
+            <button onClick={() => setTool("pencil")}>✏ Pencil</button>
+            <button onClick={() => setTool("line")}>📏 Line</button>
+            <button onClick={() => setTool("rectangle")}>⬛ Rectangle</button>
+            <input
+              type="color"
+              value={drawColor}
+              onChange={(e) => setDrawColor(e.target.value)}
+            />
+            <button onClick={undo}>Undo</button>
+            <button onClick={redo}>Redo</button>
+            <button onClick={clearCanvas}>Clear</button>
+          </div>
 
-      {Object.values(cursors).map((cursor) => (
-        <div
-          key={cursor.socketId}
-          className="live-cursor"
-          style={{ left: cursor.x, top: cursor.y }}
-        >
-          <div className="cursor-dot" />
-          <span className="cursor-name">{cursor.name}</span>
+          <canvas
+            ref={canvasRef}
+            className="canvas"
+            onMouseDown={startDrawing}
+            onMouseMove={(e) => {
+              draw(e);
+              const rect = canvasRef.current.getBoundingClientRect();
+              socket.emit("cursor-move", {
+                roomId,
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+                name,
+                color,
+              });
+            }}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+          />
+
+          {Object.values(cursors).map((cursor) => (
+            <div
+              key={cursor.socketId}
+              className="live-cursor"
+              style={{ left: cursor.x, top: cursor.y }}
+            >
+              <div
+                className="cursor-dot"
+                style={{ backgroundColor: cursor.color }}
+              />
+              <span
+                className="cursor-name"
+                style={{ backgroundColor: cursor.color }}
+              >
+                {cursor.name}
+              </span>
+            </div>
+          ))}
         </div>
-      ))}
+
+        {/* Sidebar */}
+        <div className="sidebar">
+          <h4>Users</h4>
+          {users.map((user) => (
+            <div key={user.socketId} className="user">
+              <div
+                className="avatar"
+                style={{ backgroundColor: user.color }}
+              >
+                {user.name[0].toUpperCase()}
+              </div>
+              {user.name}
+            </div>
+          ))}
+
+          <hr />
+
+          <h4>Chat</h4>
+
+          <div className="messages">
+            {messages.map((msg, index) => (
+              <div key={index} className="message">
+                <span style={{ color: msg.color, fontWeight: "bold" }}>
+                  {msg.name}
+                </span>
+                <div>{msg.message}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="chat-input">
+            <input
+              type="text"
+              placeholder="Type message..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            />
+            <button onClick={sendMessage}>Send</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

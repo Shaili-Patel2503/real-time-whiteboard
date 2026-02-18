@@ -1,73 +1,61 @@
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import socket from "../../socket";
 import Whiteboard from "../../Components/Whiteboard";
-import "./index.css";
+
+const generateColor = () => {
+  const colors = [
+    "#4F46E5",
+    "#EF4444",
+    "#10B981",
+    "#F59E0B",
+    "#EC4899",
+    "#06B6D4",
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+};
 
 const RoomPage = () => {
   const { roomId } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [joined, setJoined] = useState(false);
+  const [color] = useState(generateColor());
 
-  const [copied, setCopied] = useState(false);
-
-  const name = location.state?.name || "Guest";
-
-  useEffect(() => {
-    if (!roomId) {
-      navigate("/");
-      return;
-    }
-
-    socket.emit("join-room", roomId);
-
-    return () => {
-      socket.emit("leave-room", roomId);
-    };
-  }, [roomId, navigate]);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(roomId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Copy failed:", err);
-    }
+  const joinRoom = () => {
+    if (!name) return alert("Enter your name");
+    socket.emit("join-room", { roomId, name, color });
+    setJoined(true);
   };
 
-  const handleLeaveRoom = () => {
-    socket.emit("leave-room", roomId);
-    navigate("/");
-  };
+  if (!joined) {
+    return (
+      <div style={{ textAlign: "center", marginTop: "100px" }}>
+        <h2>Enter Your Name</h2>
+        <input
+          type="text"
+          placeholder="Your name..."
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={{ padding: "10px", width: "250px" }}
+        />
+        <br />
+        <button
+          onClick={joinRoom}
+          style={{ marginTop: "20px", padding: "10px 20px" }}
+        >
+          Join Room
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="room-page">
-      <div className="room-header">
-        <div className="brand">🧠 WhiteSync</div>
-
-        <div className="room-info">
-          <span className="user">👤 {name}</span>
-
-          <div className="room-id-container">
-            <span className="room">🔑 {roomId}</span>
-
-            <button
-              className={`copy-btn ${copied ? "copied" : ""}`}
-              onClick={handleCopy}
-            >
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
-
-          <button className="leave-btn" onClick={handleLeaveRoom}>
-            Leave
-          </button>
-        </div>
-      </div>
-
-      <Whiteboard roomId={roomId} socket={socket} />
-    </div>
+    <Whiteboard
+      roomId={roomId}
+      socket={socket}
+      name={name}
+      color={color}
+    />
   );
 };
 
