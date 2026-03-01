@@ -21,48 +21,60 @@ export default function Home() {
   };
 
   return (
-    <div className="home-container">
-      <h1 className="app-title">Realtime Whiteboard</h1>
+    <div className="premium-container">
 
-      <div className="card-wrapper">
+      <div className="background-glow"></div>
 
-        {/* Create Room Card */}
-        <div className="card">
-          <h2>Create Room</h2>
+      <div className="premium-card">
 
-          <input
-            type="text"
-            placeholder="Enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-
-          <button className="create-btn" onClick={createRoom}>
-            Create New Room
-          </button>
+        <div className="left-section">
+          <h1>Realtime Whiteboard</h1>
+          <p>
+            Collaborate. Draw. Share ideas instantly with your team.
+          </p>
         </div>
 
-        {/* Join Room Card */}
-        <div className="card">
-          <h2>Join Room</h2>
+        <div className="right-section">
 
-          <input
-            type="text"
-            placeholder="Enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+          <div className="action-card">
+            <h2>Create Room</h2>
 
-          <input
-            type="text"
-            placeholder="Enter Room Code"
-            value={roomId}
-            onChange={(e) => setRoomId(e.target.value)}
-          />
+            <input
+              type="text"
+              placeholder="Enter your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
 
-          <button className="join-btn" onClick={joinRoom}>
-            Join Room
-          </button>
+            <button className="primary-btn" onClick={createRoom}>
+              Create New Room
+            </button>
+          </div>
+
+          <div className="divider">OR</div>
+
+          <div className="action-card">
+            <h2>Join Room</h2>
+
+            <input
+              type="text"
+              placeholder="Enter your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+
+            <input
+              type="text"
+              placeholder="Enter Room Code"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+            />
+
+            <button className="secondary-btn" onClick={joinRoom}>
+              Join Room
+            </button>
+          </div>
+
         </div>
 
       </div>

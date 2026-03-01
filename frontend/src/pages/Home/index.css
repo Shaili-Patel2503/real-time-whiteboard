@@ -1,79 +1,139 @@
-.home-container {
+/* Full screen background */
+.premium-container {
   height: 100vh;
-  background: linear-gradient(135deg, #667eea, #764ba2);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(135deg, #1e1e2f, #121212);
+  position: relative;
+  overflow: hidden;
+  font-family: "Segoe UI", sans-serif;
 }
 
-.app-title {
-  color: white;
-  font-size: 40px;
-  margin-bottom: 40px;
-  font-weight: 700;
+/* Soft glow background */
+.background-glow {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, #5a67d8 0%, transparent 70%);
+  filter: blur(150px);
+  opacity: 0.4;
 }
 
-.card-wrapper {
+/* Main glass card */
+.premium-card {
   display: flex;
-  gap: 40px;
-  flex-wrap: wrap;
+  width: 1000px;
+  max-width: 95%;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 50px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+  color: white;
+  gap: 50px;
+  animation: fadeIn 0.6s ease;
+}
+
+/* Left Info Section */
+.left-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
 }
 
-.card {
-  background: white;
-  padding: 30px;
-  width: 320px;
-  border-radius: 16px;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+.left-section h1 {
+  font-size: 42px;
+  margin-bottom: 20px;
+}
+
+.left-section p {
+  font-size: 16px;
+  opacity: 0.8;
+  line-height: 1.6;
+}
+
+/* Right Action Section */
+.right-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* Action card */
+.action-card {
+  background: rgba(255, 255, 255, 0.07);
+  padding: 25px;
+  border-radius: 15px;
   display: flex;
   flex-direction: column;
   gap: 15px;
   transition: 0.3s ease;
 }
 
-.card:hover {
+.action-card:hover {
   transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.card h2 {
-  margin-bottom: 10px;
-}
-
-.card input {
+/* Inputs */
+.action-card input {
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: none;
+  outline: none;
   font-size: 14px;
 }
 
-.create-btn {
+/* Buttons */
+.primary-btn {
   padding: 12px;
-  border: none;
   border-radius: 8px;
+  border: none;
   background: #5a67d8;
   color: white;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.3s;
+  transition: 0.3s ease;
 }
 
-.create-btn:hover {
+.primary-btn:hover {
   background: #434190;
+  transform: scale(1.03);
 }
 
-.join-btn {
+.secondary-btn {
   padding: 12px;
-  border: none;
   border-radius: 8px;
+  border: none;
   background: #10b981;
   color: white;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.3s;
+  transition: 0.3s ease;
 }
 
-.join-btn:hover {
+.secondary-btn:hover {
   background: #059669;
+  transform: scale(1.03);
+}
+
+.divider {
+  text-align: center;
+  opacity: 0.5;
+  font-weight: 600;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
