@@ -11,23 +11,27 @@ app.use(cors());
 
 const server = http.createServer(app);
 
+/* ✅ IMPORTANT: Allow production frontend */
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "*", // we will restrict later after Vercel deploy
     methods: ["GET", "POST"],
   },
 });
 
-// 🔥 OpenAI Setup
+/* ------------------ OPENAI SETUP ------------------ */
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+/* ------------------ ROOMS STORAGE ------------------ */
 const rooms = {};
 
+/* ------------------ SOCKET CONNECTION ------------------ */
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
 
+  /* JOIN ROOM */
   socket.on("join-room", ({ roomId, name, color }) => {
     socket.join(roomId);
 
@@ -42,10 +46,12 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("users-update", rooms[roomId]);
   });
 
+  /* DRAWING */
   socket.on("send-elements", (data) => {
     socket.to(data.roomId).emit("receive-elements", data.elements);
   });
 
+  /* CURSOR */
   socket.on("cursor-move", (data) => {
     socket.to(data.roomId).emit("cursor-move", {
       socketId: socket.id,
@@ -56,9 +62,8 @@ io.on("connection", (socket) => {
     });
   });
 
-  // 💬 CHAT + AI
+  /* CHAT + AI */
   socket.on("send-message", async (data) => {
-    // Send user message first
     io.to(data.roomId).emit("receive-message", {
       message: data.message,
       name: data.name,
@@ -66,10 +71,8 @@ io.on("connection", (socket) => {
       time: new Date().toLocaleTimeString(),
     });
 
-    // 🤖 If message starts with @ai
     if (data.message.startsWith("@ai")) {
       const userPrompt = data.message.replace("@ai", "").trim();
-
       if (!userPrompt) return;
 
       try {
@@ -109,10 +112,12 @@ io.on("connection", (socket) => {
     }
   });
 
+  /* CLEAR CANVAS */
   socket.on("clear-canvas", (roomId) => {
     socket.to(roomId).emit("clear-canvas");
   });
 
+  /* DISCONNECT */
   socket.on("disconnect", () => {
     for (const roomId in rooms) {
       rooms[roomId] = rooms[roomId].filter(
@@ -123,6 +128,9 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(5000, () => {
-  console.log("🚀 Server running on http://localhost:5000");
+/* ✅ IMPORTANT FOR RENDER */
+const PORT = process.env.PORT || 5000;
+
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
